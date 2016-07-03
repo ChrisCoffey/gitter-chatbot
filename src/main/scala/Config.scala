@@ -9,10 +9,19 @@ object Urls{
 
     def roomStream(c: ChatbotConfig, r: String): String = 
         c.streamingUrl + "/v1/rooms/" + r + "/chatMessages"
+
+    def currentUser(c: ChatbotConfig): String = 
+        c.baseURL + "/v1/user"
 }
 
 object Rooms {
 
-    lazy val allRooms: Seq[String] = Seq("57770666c2f0db084a2107a4")
-
+    lazy val allRooms: Seq[String] = roomHelp.keys.toSeq
+    
+    val roomHelp = Map (
+        "57770666c2f0db084a2107a4" -> List[(String, String)] (
+            "*help*" -> "http://ensime.github.io/getting_help/",
+            "*error*" -> "http://ensime.github.io/getting_help/"
+            )
+        )
 }

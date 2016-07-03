@@ -16,12 +16,18 @@ case class User(
     id: String,
     username: String,
     displayName: String,
-    userUrl: String,
-    avatarUrlSmall: String,
-    avatarUrlLarge: String
+    url: String
     )
 
+case class Mention (
+    screenname: String,
+    userId: String
+    )
+
+
 case class Message(
-    text: String
+    text: String,
+    fromUser: Option[User] = None,
+    mentions: Seq[Mention] = Seq.empty
     )
 
