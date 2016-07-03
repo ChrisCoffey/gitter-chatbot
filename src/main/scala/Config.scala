@@ -16,12 +16,16 @@ object Urls{
 
 object Rooms {
 
-    lazy val allRooms: Seq[String] = roomHelp.keys.toSeq
+    lazy val allRooms: Seq[String] = rulesForRoom.keys.toSeq
     
-    val roomHelp = Map (
-        "57770666c2f0db084a2107a4" -> List[(String, String)] (
-            "*help*" -> "http://ensime.github.io/getting_help/",
-            "*error*" -> "http://ensime.github.io/getting_help/"
+    val rulesForRoom = Map (
+        "54b58225db8155e6700e9eb0" -> List[(String, String)] (
+            ".* error.*" -> "http://ensime.github.io/getting_help/",
+            ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
+            ),
+        "55e0d9070fc9f982beaef2e3" -> List[(String, String)] (
+            ".* error.*" -> "http://ensime.github.io/editors/vim/troubleshooting/",
+            ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
             )
         )
 }

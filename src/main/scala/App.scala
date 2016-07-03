@@ -3,6 +3,9 @@ package org.ensime.chatbot
 import java.time._
 
 import scala.collection.mutable.{Map => MMap}
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.{Duration => D}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.io.Source
 
@@ -48,51 +51,44 @@ object Main {
 
 object Chatbot {
 
-    private val recentlyHelped = MMap.empty[String, LocalDateTime]
-
     def helpAllThePeople()(implicit c: ChatbotConfig) = {
         Gitter.getMyUserInfo match {
             case Xor.Right(myself) =>
                 implicit val me = myself
-                Rooms.allRooms.map(r => Gitter.processRoomMessages(r)(sendHelpfulMessage))
+                val fs = Rooms.allRooms.map(r => 
+                        Future { Gitter.processRoomMessages(r)(sendHelpfulMessage) })
+                Await.ready(Future.sequence(fs), D.Inf)
             case Xor.Left(err) => 
                 System.err.println(err)
                 System.err.println("Problems requesting User. Exiting.")
         }
 
-
-
         println("No more help for you")
     }
 
     private def sendHelpfulMessage(msg: Message, room: String)(implicit c: ChatbotConfig, me: User) = {
-        if(msg.fromUser.exists(u => u.id == me.id)){
-            System.err.println("Skipping Chatbot message.")
-        } else {
-            determineHelpMessage(msg.text, room).foreach(x => Gitter.sendMessage(room, x))
+        msg.fromUser match {
+            case None =>
+                System.err.println("Skipping Chatbot message.")
+            case Some(u) if u.id == me.id =>
+                System.err.println("Skipping Chatbot message.")
+            case Some(u) =>
+                if(msg.mentions.nonEmpty){
+                    val helpMessage = determineHelpMessage(room, msg.text)
+                    helpMessage.foreach(x => Gitter.sendMessage(room, x))
+                }
         }
     }
 
     private def determineHelpMessage(r: String, text: String): Option[String] = {
-        Rooms.roomHelp.get(r).flatMap{ls =>
+        Rooms.rulesForRoom.get(r).flatMap{ls =>
                 ls.filter( assoc => text.matches(assoc._1)) match {
                     case Nil => 
                         None
                     case matches => 
-                        Some(matches.map(_._2).mkString("Please read these: ", " or ", ""))
+                        Some(matches.map(_._2).distinct.mkString("Please read: ", " and ", ""))
                 }
             }
-    }
-
-    private def updateHelpCache(id: String) = synchronized {
-        recentlyHelped.get(id) match {
-            case None => 
-                recentlyHelped + (id -> LocalDateTime.now())
-            case Some(x) =>
-                val now = LocalDateTime.now()
-                val toRemove = recentlyHelped.filter(kvp => kvp._2.isBefore(now.plusHours(1))).map(_._1)
-                recentlyHelped -- toRemove
-        } 
     }
 }
 
@@ -110,18 +106,20 @@ object Gitter {
         decode[List[User]](rawBody).map(_.head)
     }
 
-    def processRoomMessages( r: String)(f: (Message, String) => Unit)(implicit c: ChatbotConfig)  = {
+    def processRoomMessages( r: String)(f: (Message, String) => Unit)(implicit c: ChatbotConfig): Unit  = {
         val inputStream = Http(Urls.roomStream(c, r)) 
-            .timeout(connTimeoutMs = 1000, readTimeoutMs = 30000)
+            .timeout(connTimeoutMs = 1000, readTimeoutMs = 30000000)
             .header("Authorization",s"Bearer ${c.bearerToken}")
             .header("Accept", "application/json")
             .execute{input =>
                 val bs = Source.fromInputStream(input).getLines()
                     bs.foreach{m =>
+                        println(m)
                         decode[Message](m) match {
                             case Xor.Right(mv) =>
                                 f(mv, r)
-                            case _ => println("skipping")
+                            case _ => 
+                                println("skipping")
                         }
                     }
             }.body
@@ -130,11 +128,13 @@ object Gitter {
 
     def sendMessage( room: String, text: String)(implicit c: ChatbotConfig) : Unit = {
         val message = Message(text)
+        println(message)
         Http(Urls.messageURL(c, room))
             .postData(message.asJson.noSpaces)
             .header("Authorization",s"Bearer ${c.bearerToken}")
             .header("content-type", "application/json")
-            .header("Accept", "application/json").asString 
+            .header("Accept", "application/json")
+            .asString 
     }
 
 }

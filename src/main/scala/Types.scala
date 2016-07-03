@@ -20,7 +20,7 @@ case class User(
     )
 
 case class Mention (
-    screenname: String,
+    screenName: String,
     userId: String
     )
 
