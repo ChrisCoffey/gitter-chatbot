@@ -1,1 +1,1 @@
-web: target/universal/stage/bin/ensime-chatbot
+worker: target/universal/stage/bin/ensime-chatbot
