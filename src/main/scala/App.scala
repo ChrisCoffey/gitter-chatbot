@@ -28,7 +28,7 @@ object Main {
     def main(args: Array[String]): Unit = {
         configure() match {
             case Left(err) => 
-                System.err.println(err)
+                System.out.println(err)
                 System.exit(1)
             case Right(conf) =>
                 implicit val c = conf
@@ -59,19 +59,19 @@ object Chatbot {
                         Future { Gitter.processRoomMessages(r)(sendHelpfulMessage) })
                 Await.ready(Future.sequence(fs), D.Inf)
             case Xor.Left(err) => 
-                System.err.println(err)
-                System.err.println("Problems requesting User. Exiting.")
+                System.out.println(err)
+                System.out.println("Problems requesting User. Exiting.")
         }
 
-        println("No more help for you")
+        System.out.println("No more help for you")
     }
 
     private def sendHelpfulMessage(msg: Message, room: String)(implicit c: ChatbotConfig, me: User) = {
         msg.fromUser match {
             case None =>
-                System.err.println("Skipping Chatbot message.")
+                System.out.println("Skipping Chatbot message.")
             case Some(u) if u.id == me.id =>
-                System.err.println("Skipping Chatbot message.")
+                System.out.println("Skipping Chatbot message.")
             case Some(u) =>
                 if(msg.mentions.nonEmpty){
                     val helpMessage = determineHelpMessage(room, msg.text)
@@ -102,7 +102,6 @@ object Gitter {
             .asString
             .body
 
-        println(rawBody)
         decode[List[User]](rawBody).map(_.head)
     }
 
@@ -114,12 +113,11 @@ object Gitter {
             .execute{input =>
                 val bs = Source.fromInputStream(input).getLines()
                     bs.foreach{m =>
-                        println(m)
                         decode[Message](m) match {
                             case Xor.Right(mv) =>
                                 f(mv, r)
                             case _ => 
-                                println("skipping")
+                                System.out.println("skipping")
                         }
                     }
             }.body
@@ -128,7 +126,7 @@ object Gitter {
 
     def sendMessage( room: String, text: String)(implicit c: ChatbotConfig) : Unit = {
         val message = Message(text)
-        println(message)
+        System.out.println(message)
         Http(Urls.messageURL(c, room))
             .postData(message.asJson.noSpaces)
             .header("Authorization",s"Bearer ${c.bearerToken}")
