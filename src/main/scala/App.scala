@@ -2,7 +2,7 @@ package org.ensime.chatbot
 
 import java.time._
 
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable.{Set => MSet}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration => D}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,7 +15,7 @@ import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
 
-import org.ensime.chatbot.config.{Rooms,Urls}
+import org.ensime.chatbot.config.{Rooms,Urls, Welcome}
 import org.ensime.chatbot.types._
 
 object Main {
@@ -51,12 +51,17 @@ object Main {
 
 object Chatbot {
 
+    private val knownUsers: Map[String, MSet[String]] = Rooms.allRooms.map(r => r -> MSet.empty[String]).toMap
+
     def helpAllThePeople()(implicit c: ChatbotConfig) = {
         Gitter.getMyUserInfo match {
             case Xor.Right(myself) =>
                 implicit val me = myself
-                val fs = Rooms.allRooms.map(r => 
-                        Future { Gitter.processRoomMessages(r)(sendHelpfulMessage) })
+                val fs = Rooms.allRooms.map{r => 
+                        val roomUsers = Gitter.roomUsers(r)
+                        knownUsers(r) ++= roomUsers.map(_.id)
+                        Future { Gitter.processRoomMessages(r)(sendHelpfulMessage) }
+                    }
                 Await.ready(Future.sequence(fs), D.Inf)
             case Xor.Left(err) => 
                 System.out.println(err)
@@ -73,23 +78,42 @@ object Chatbot {
             case Some(u) if u.id == me.id =>
                 System.out.println("Skipping Chatbot message.")
             case Some(u) =>
-                if(msg.mentions.nonEmpty){
-                    val helpMessage = determineHelpMessage(room, msg.text)
+                if(msg.mentions.nonEmpty || firstMessage(room, msg)){
+                    val helpMessage = determineHelpMessage(room, msg)
                     helpMessage.foreach(x => Gitter.sendMessage(room, x))
                 }
         }
     }
 
-    private def determineHelpMessage(r: String, text: String): Option[String] = {
-        Rooms.rulesForRoom.get(r).flatMap{ls =>
-                ls.filter( assoc => text.matches(assoc._1)) match {
-                    case Nil => 
-                        None
-                    case matches => 
-                        Some(matches.map(_._2).distinct.mkString("Please read: ", " and ", ""))
-                }
+    private def determineHelpMessage(r: String, msg: Message): Option[String] = {
+        val x = for {
+            users <- knownUsers.get(r)
+            sender <- msg.fromUser
+            senderId = sender.id
+            roomRules <- Rooms.rulesForRoom.get(r)
+            helpMsg = maybeMessageRule(msg.text, roomRules)
+        } yield {
+            if(!users.contains(senderId)){
+                users += senderId
+                Some( Welcome.toEnsime )
+            } else {
+                helpMsg
             }
+        }
+        x.flatten
     }
+
+    private def firstMessage(r: String, msg: Message): Boolean = 
+        knownUsers.get(r).exists(users => 
+                users.contains(msg.fromUser.fold("Fake")(u=> u.id)))
+
+    private def maybeMessageRule(text: String, rules: List[(String, String)]): Option[String] = 
+        rules.filter( assoc => text.matches(assoc._1)) match {
+            case Nil => 
+                None
+            case matches => 
+                Some(matches.map(_._2).distinct.mkString("Please read: ", " and ", ""))
+        }
 }
 
 object Gitter {
@@ -106,7 +130,7 @@ object Gitter {
     }
 
     def processRoomMessages( r: String)(f: (Message, String) => Unit)(implicit c: ChatbotConfig): Unit  = {
-        val inputStream = Http(Urls.roomStream(c, r)) 
+        Http(Urls.roomStream(c, r)) 
             .timeout(connTimeoutMs = 1000, readTimeoutMs = 30000000)
             .header("Authorization",s"Bearer ${c.bearerToken}")
             .header("Accept", "application/json")
@@ -122,6 +146,21 @@ object Gitter {
                     }
             }.body
     
+    }
+
+    def roomUsers(room: String)(implicit c: ChatbotConfig): Seq[User] = {
+        val rawBody = Http(Urls.roomUsers(c, room))
+            .header("Authorization",s"Bearer ${c.bearerToken}")
+            .header("Accept", "application/json")
+            .asString
+            .body
+
+        decode[List[User]](rawBody) match {
+            case Xor.Left(err) => 
+                Seq.empty
+            case Xor.Right(users) =>
+                users
+        }
     }
 
     def sendMessage( room: String, text: String)(implicit c: ChatbotConfig) : Unit = {

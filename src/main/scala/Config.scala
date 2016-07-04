@@ -7,11 +7,14 @@ object Urls{
     def messageURL(c: ChatbotConfig, room: String): String = 
         c.baseURL + "/v1/rooms/" + room + "/chatMessages" 
 
-    def roomStream(c: ChatbotConfig, r: String): String = 
-        c.streamingUrl + "/v1/rooms/" + r + "/chatMessages"
+    def roomStream(c: ChatbotConfig, room: String): String = 
+        c.streamingUrl + "/v1/rooms/" + room + "/chatMessages"
 
     def currentUser(c: ChatbotConfig): String = 
         c.baseURL + "/v1/user"
+
+    def roomUsers(c: ChatbotConfig, room: String): String = 
+        c.baseURL + "/v1/rooms/" + room + "/users?limit=500"
 }
 
 object Rooms {
@@ -30,4 +33,8 @@ object Rooms {
             ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
             )
         )
+}
+
+object Welcome {
+    val toEnsime = "Welcome to the Ensime gitter room. Make sure you've read http://ensime.github.io/getting_started/  "
 }
