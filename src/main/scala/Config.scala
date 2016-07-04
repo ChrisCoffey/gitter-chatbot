@@ -27,14 +27,14 @@ object Rooms {
     val rulesForRoom = Map (
         //Ensime Server
         "54b58225db8155e6700e9eb0" -> List[Rule] (
-            Rule(".*@\\w*.* error.*|error", "http://ensime.github.io/editors/emacs/troubleshooting/"),
-            Rule(".*@\\w*.* troubleshooting.*|troubleshooting", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule(".*@\\w*.* error.*|error", "http://ensime.github.io/getting_help/"),
+            Rule(".*@\\w*.* troubleshooting.*|troubleshooting", "http://ensime.github.io/getting_help/"),
             Rule("@ensimebot help @\\w*.*|help", "http://ensime.github.io/getting_help/")
             ),
         //Ensime Vim
         "55e0d9070fc9f982beaef2e3" -> List[Rule] (
-            Rule(".*@\\w*.* error.*|error", "http://ensime.github.io/editors/emacs/troubleshooting/"),
-            Rule(".*@\\w*.* troubleshooting.*|troubleshooting", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule(".*@\\w*.* error.*|error", "http://ensime.github.io/editors/vim/troubleshooting/"),
+            Rule(".*@\\w*.* troubleshooting.*|troubleshooting", "http://ensime.github.io/editors/vim/troubleshooting/"),
             Rule("@ensimebot help @\\w*.*|help", "http://ensime.github.io/getting_help/")
             ),
         //Ensime Emacs
