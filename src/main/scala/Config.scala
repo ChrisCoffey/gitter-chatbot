@@ -26,19 +26,22 @@ object Rooms {
     
     val rulesForRoom = Map (
         //Ensime Server
-        "54b58225db8155e6700e9eb0" -> List[(String, String)] (
-            ".* error.*" -> "http://ensime.github.io/getting_help/",
-            ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
+        "54b58225db8155e6700e9eb0" -> List[Rule] (
+            Rule(".*@\\w*.* error.*|error", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule(".*@\\w*.* troubleshooting.*|troubleshooting", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule("@ensimebot help @\\w*.*|help", "http://ensime.github.io/getting_help/")
             ),
         //Ensime Vim
-        "55e0d9070fc9f982beaef2e3" -> List[(String, String)] (
-            ".* error.*" -> "http://ensime.github.io/editors/vim/troubleshooting/",
-            ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
+        "55e0d9070fc9f982beaef2e3" -> List[Rule] (
+            Rule(".*@\\w*.* error.*|error", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule(".*@\\w*.* troubleshooting.*|troubleshooting", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule("@ensimebot help @\\w*.*|help", "http://ensime.github.io/getting_help/")
             ),
         //Ensime Emacs
-        "558fcd0315522ed4b3e2f65d" -> List[(String, String)] (
-            ".* error.*" -> "http://ensime.github.io/editors/emacs/troubleshooting/",
-            ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
+        "558fcd0315522ed4b3e2f65d" -> List[Rule] (
+            Rule(".*@\\w*.* error.*|error", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule(".*@\\w*.* troubleshooting.*|troubleshooting", "http://ensime.github.io/editors/emacs/troubleshooting/"),
+            Rule("@ensimebot help @\\w*.*|help", "http://ensime.github.io/getting_help/")
             )
         )
 }

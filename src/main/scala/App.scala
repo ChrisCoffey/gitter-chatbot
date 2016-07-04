@@ -52,6 +52,7 @@ object Main {
 object Chatbot {
 
     private val knownUsers: Map[String, MSet[String]] = Rooms.allRooms.map(r => r -> MSet("Fake")).toMap
+    private val EnsimeBot =  Mention("ensimebot", "5778f8e6c2f0db084a213164")
 
     def helpAllThePeople()(implicit c: ChatbotConfig) = {
         Gitter.getMyUserInfo match {
@@ -78,10 +79,8 @@ object Chatbot {
             case Some(u) if u.id == me.id =>
                 System.out.println("Skipping Chatbot message.")
             case Some(u) =>
-                if(msg.mentions.nonEmpty || firstMessage(room, msg)){
-                    val helpMessage = determineHelpMessage(room, msg)
-                    helpMessage.foreach(x => Gitter.sendMessage(room, x))
-                }
+                val helpMessage = determineHelpMessage(room, msg)
+                helpMessage.foreach(x => Gitter.sendMessage(room, x))
         }
     }
 
@@ -96,6 +95,13 @@ object Chatbot {
             if(!users.contains(senderId)){
                 users += senderId
                 Some( Welcome.toEnsime )
+            } else if (msg.mentions.contains(EnsimeBot)){
+                msg.mentions.filterNot(_ == EnsimeBot) match {
+                    case Nil => 
+                        helpMsg
+                    case otherMentions =>
+                        helpMsg.map(str => otherMentions.map(mn => s"@${mn.screenName}").mkString(" ", " ", " ") + str)
+                }
             } else {
                 helpMsg
             }
@@ -104,15 +110,16 @@ object Chatbot {
     }
 
     private def firstMessage(r: String, msg: Message): Boolean = 
-        !knownUsers.get(r).exists(users => 
+        !knownUsers.get(r)
+            .exists(users => 
                 users.contains(msg.fromUser.fold("Fake")(u=> u.id)))
 
-    private def maybeMessageRule(text: String, rules: List[(String, String)]): Option[String] = 
-        rules.filter( assoc => text.matches(assoc._1)) match {
+    private def maybeMessageRule(text: String, rules: List[Rule]): Option[String] = 
+        rules.filter( Rule.isMatch(_, text) ) match {
             case Nil => 
                 None
             case matches => 
-                Some(matches.map(_._2).distinct.mkString("Please read: ", " and ", ""))
+                Some(matches.map(_.responseMessage).distinct.mkString("Please read: ", " and ", ""))
         }
 }
 

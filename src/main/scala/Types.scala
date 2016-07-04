@@ -31,3 +31,11 @@ case class Message(
     mentions: Seq[Mention] = Seq.empty
     )
 
+case class Rule(regex: String, responseMessage: String)
+
+object Rule {
+    def echoMention(rule: Rule, mention: String) = 
+        mention + " " + rule.responseMessage
+
+    def isMatch(rule: Rule, text: String) = text.matches(rule.regex)
+}
