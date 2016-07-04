@@ -15,6 +15,9 @@ object Urls{
 
     def roomUsers(c: ChatbotConfig, room: String): String = 
         c.baseURL + "/v1/rooms/" + room + "/users?limit=500"
+
+    def roomUsersWithSkip(c: ChatbotConfig, room: String, skip: Int ) = 
+        roomUsers(c,room) + s"&skip=$skip"
 }
 
 object Rooms {
@@ -30,6 +33,11 @@ object Rooms {
         //Ensime Vim
         "55e0d9070fc9f982beaef2e3" -> List[(String, String)] (
             ".* error.*" -> "http://ensime.github.io/editors/vim/troubleshooting/",
+            ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
+            ),
+        //Ensime Emacs
+        "558fcd0315522ed4b3e2f65d" -> List[(String, String)] (
+            ".* error.*" -> "http://ensime.github.io/editors/emacs/troubleshooting/",
             ".* troubleshooting.*" -> "http://ensime.github.io/getting_help/"
             )
         )

@@ -51,7 +51,7 @@ object Main {
 
 object Chatbot {
 
-    private val knownUsers: Map[String, MSet[String]] = Rooms.allRooms.map(r => r -> MSet.empty[String]).toMap
+    private val knownUsers: Map[String, MSet[String]] = Rooms.allRooms.map(r => r -> MSet("Fake")).toMap
 
     def helpAllThePeople()(implicit c: ChatbotConfig) = {
         Gitter.getMyUserInfo match {
@@ -104,7 +104,7 @@ object Chatbot {
     }
 
     private def firstMessage(r: String, msg: Message): Boolean = 
-        knownUsers.get(r).exists(users => 
+        !knownUsers.get(r).exists(users => 
                 users.contains(msg.fromUser.fold("Fake")(u=> u.id)))
 
     private def maybeMessageRule(text: String, rules: List[(String, String)]): Option[String] = 
@@ -149,18 +149,25 @@ object Gitter {
     }
 
     def roomUsers(room: String)(implicit c: ChatbotConfig): Seq[User] = {
-        val rawBody = Http(Urls.roomUsers(c, room))
-            .header("Authorization",s"Bearer ${c.bearerToken}")
-            .header("Accept", "application/json")
-            .asString
-            .body
-
-        decode[List[User]](rawBody) match {
-            case Xor.Left(err) => 
-                Seq.empty
-            case Xor.Right(users) =>
-                users
+        def fetch (foundSoFar: Seq[User]): Seq[User] = {
+            val url = if(foundSoFar.isEmpty) Urls.roomUsers(c, room) 
+                      else Urls.roomUsersWithSkip(c, room, foundSoFar.size)
+            
+            val rawBody = Http(url)
+                .header("Authorization",s"Bearer ${c.bearerToken}")
+                .header("Accept", "application/json")
+                .asString
+                .body
+        
+            decode[List[User]](rawBody) match {
+                case Xor.Left(_) | Xor.Right(Nil) => 
+                    foundSoFar
+                case Xor.Right(users) =>
+                    fetch(users ++ foundSoFar)
+            }
         }
+
+        fetch(Seq.empty[User])
     }
 
     def sendMessage( room: String, text: String)(implicit c: ChatbotConfig) : Unit = {
